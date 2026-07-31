@@ -31,7 +31,7 @@ except ImportError:
 # Configuration
 # =========================================================
 
-DATA_DIR = Path("trashnet-random")
+DATA_DIR = Path("trashnet-splits/split_0")
 
 OUTPUT_DIR = Path("runs/eva02_base_448_trashnet")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -427,15 +427,21 @@ def compute_metrics(labels, preds, num_classes):
     }
 
 
-def autocast_context(amp_enabled):
-    try:
-        return torch.amp.autocast(
-            "cuda",
-            enabled=amp_enabled,
-            dtype=AMP_DTYPE
-        )
-    except TypeError:
-        return torch.cuda.amp.autocast(enabled=amp_enabled)
+def autocast_context(device, amp_enabled):
+    if device.type == "cuda":
+        try:
+            return torch.amp.autocast(
+                "cuda",
+                enabled=amp_enabled,
+                dtype=AMP_DTYPE
+            )
+        except TypeError:
+            return torch.cuda.amp.autocast(enabled=amp_enabled)
+
+    return torch.amp.autocast(
+        "cpu",
+        enabled=False
+    )
 
 
 def move_batch_to_device(images, labels, device):
@@ -466,7 +472,7 @@ def train_one_epoch(model, loader, optimizer, criterion, scaler, device, amp_ena
     for batch_idx, (images, labels) in enumerate(progress, start=1):
         images, labels = move_batch_to_device(images, labels, device)
 
-        with autocast_context(amp_enabled):
+        with autocast_context(device, amp_enabled):
             outputs = model(images)
             loss = criterion(outputs, labels)
 
@@ -514,7 +520,7 @@ def evaluate(model, loader, criterion, device, amp_enabled, split_name):
     for images, labels in progress:
         images, labels = move_batch_to_device(images, labels, device)
 
-        with autocast_context(amp_enabled):
+        with autocast_context(device, amp_enabled):
             outputs = model(images)
             loss = criterion(outputs, labels)
 
@@ -702,12 +708,10 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if device.type != "cuda":
-        raise RuntimeError("CUDA is required for the fast EVA02 training script.")
-
-    torch.backends.cudnn.benchmark = True
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.allow_tf32 = True
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
 
     try:
         torch.set_float32_matmul_precision("high")
@@ -804,12 +808,18 @@ def main():
 
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
 
-    amp_enabled = USE_AMP
+    amp_enabled = USE_AMP and device.type == "cuda"
 
-    try:
-        scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
-    except TypeError:
-        scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
+    if device.type == "cuda":
+        try:
+            scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
+        except TypeError:
+            scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
+    else:
+        try:
+            scaler = torch.amp.GradScaler("cpu", enabled=False)
+        except TypeError:
+            scaler = torch.cuda.amp.GradScaler(enabled=False)
 
     phases = [
         {
@@ -979,8 +989,8 @@ def main():
                 best_macro_f1,
                 class_names
             )
-
-            torch.cuda.empty_cache()
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
 
         resume_checkpoint = None
         resume_epoch = 0
