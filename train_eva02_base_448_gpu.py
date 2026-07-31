@@ -31,7 +31,7 @@ except ImportError:
 # Configuration
 # =========================================================
 
-DATA_DIR = Path("trashnet-splits/split_0")
+DATA_DIR = Path("trashnet-random")
 
 OUTPUT_DIR = Path("runs/eva02_base_448_trashnet")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
