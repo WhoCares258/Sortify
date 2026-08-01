@@ -1,13 +1,13 @@
-# run_5_eva02_splits_resume_safe.py
+# run_5_eva02_splits.py
 #
 # Resume-safe runner for training EVA02 on 5 TrashNet random splits.
 #
 # Workflow:
-# 1. python prepare_5_trashnet_random_splits.py
-# 2. python run_5_eva02_splits_resume_safe.py --fresh     # first full clean run
+# 1. python prepare_5_trashnet_random_split.py
+# 2. python run_5_eva02_splits.py --fresh     # first full clean run
 #
 # If the terminal/PC stops accidentally:
-# python run_5_eva02_splits_resume_safe.py
+# python run_5_eva02_splits.py
 #
 # Important:
 # - Do NOT use --fresh when resuming.
