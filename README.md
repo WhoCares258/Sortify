@@ -8,6 +8,20 @@ This project trains EVA02-Base on the TrashNet dataset using five independent gl
 pip install -r requirements.txt
 ```
 
+## Hardware Recommendation
+
+A CUDA-enabled NVIDIA GPU is strongly recommended for training.
+
+The project will run on CPU if CUDA is not available, but training will be significantly slower and may take many hours or even days depending on your hardware.
+
+To verify that PyTorch detects your GPU, run:
+
+```bash
+python -c "import torch; print(torch.cuda.is_available())"
+```
+
+A return value of `True` indicates that CUDA is available and training will use the GPU.
+
 ## 2. Download TrashNet
 
 1. Go to: https://huggingface.co/datasets/garythung/trashnet/tree/main
