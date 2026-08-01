@@ -722,7 +722,10 @@ def main():
     print("Training EVA02-Base 448 on TrashNet")
     print("=" * 70)
     print(f"Device              : {device}")
-    print(f"GPU                 : {torch.cuda.get_device_name(0)}")
+    if device.type == "cuda":
+        print(f"GPU                 : {torch.cuda.get_device_name(0)}")
+    else:
+        print("GPU                 : Not available, using CPU")
     print(f"Dataset             : {DATA_DIR}")
     print(f"Output directory    : {OUTPUT_DIR}")
     print(f"Model               : {MODEL_NAME}")
